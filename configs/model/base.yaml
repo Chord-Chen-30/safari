@@ -1,11 +1,11 @@
 defaults:
   - layer: long-conv
 
-_name_: model
+_name_: lm
 prenorm: true
 transposed: false
 n_layers: 4
-d_model: 256
+d_model: 768
 residual: R
 pool:
   _name_: pool

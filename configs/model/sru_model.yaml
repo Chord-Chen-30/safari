@@ -1,0 +1,15 @@
+# Large SRU model used as baseline for WikiText-103
+
+defaults:
+  - base
+  - override layer: sru
+  # - _self_
+
+n_layer: 8
+attn_layer_idx: []
+max_position_embeddings: 1024
+
+
+# encoder:
+#   _name_: gpt2embedding
+  # d_model: 768

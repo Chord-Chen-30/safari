@@ -56,6 +56,9 @@ def create_mixer_cls(layer=None, process_group=None,
                             **(attn_cfg if attn_cfg is not None else {}),
                             **parallel_kwargs, **factory_kwargs)
     else:
+        import omegaconf
+        if isinstance(layer, omegaconf.listconfig.ListConfig) and len(layer)==1:
+            layer = layer[0]
         fused_bias_fc = False if layer is None else layer.get('fused_bias_fc', False)
         if process_group is not None:
             assert fused_bias_fc, 'TensorParallel SSM requires fused_bias_fc'
@@ -91,6 +94,7 @@ def create_block(d_model, d_inner=None, process_group=None,
                  sequence_parallel=True,
                  device=None, dtype=None):
     factory_kwargs = {'device': device, 'dtype': dtype}
+    # breakpoint()
     mixer_cls = create_mixer_cls(layer=layer, process_group=process_group,
                                  attn_layer_idx=attn_layer_idx,
                                  attn_cfg=attn_cfg, layer_idx=layer_idx,
@@ -100,11 +104,22 @@ def create_block(d_model, d_inner=None, process_group=None,
                              fused_mlp=fused_mlp, sequence_parallel=sequence_parallel,
                              **factory_kwargs)
     norm_cls = partial(nn.LayerNorm, eps=layer_norm_epsilon, **factory_kwargs)
+    
+    #TODO
+    # if layer is sru ...:
+    #     block = Block(...)
+    # else:
+    #     block = Block(d_model, mixer_cls, mlp_cls, norm_cls=norm_cls,
+    #               prenorm=True, resid_dropout1=resid_dropout1, resid_dropout2=resid_dropout2,
+    #               fused_dropout_add_ln=fused_dropout_add_ln, residual_in_fp32=residual_in_fp32,
+    #               sequence_parallel=sequence_parallel and process_group is not None,
+    #               mark_shared_params=process_group is not None)
     block = Block(d_model, mixer_cls, mlp_cls, norm_cls=norm_cls,
                   prenorm=True, resid_dropout1=resid_dropout1, resid_dropout2=resid_dropout2,
                   fused_dropout_add_ln=fused_dropout_add_ln, residual_in_fp32=residual_in_fp32,
                   sequence_parallel=sequence_parallel and process_group is not None,
                   mark_shared_params=process_group is not None)
+
     block.layer_idx = layer_idx
     return block
 
@@ -178,6 +193,8 @@ class LMBackbone(nn.Module):
         if self.fused_dropout_add_ln and dropout_add_layer_norm is None:
             raise ImportError('dropout_add_layer_norm is not installed')
 
+        # breakpoint()
+        
         self.layers = nn.ModuleList([create_block(
             d_model, d_inner=d_inner, process_group=process_group,
             layer=layer, attn_layer_idx=attn_layer_idx,
@@ -221,7 +238,9 @@ class LMBackbone(nn.Module):
         if inference_params is not None:
             mixer_kwargs['inference_params'] = inference_params
         for layer in self.layers:
-            hidden_states, residual = layer(hidden_states, residual, mixer_kwargs=mixer_kwargs)
+            # breakpoint()
+            hidden_states, residual, *cell_state = layer(hidden_states, residual, mixer_kwargs=mixer_kwargs)
+            cell_state = cell_state[0] if len(cell_state) == 1 else None
         if not self.fused_dropout_add_ln:
             dropped = self.drop_f(hidden_states)
             residual = (dropped + residual) if residual is not None else dropped
@@ -251,6 +270,7 @@ class ConvLMHeadModel(nn.Module, GenerationMixin):
         self.process_group = process_group
         if vocab_size % pad_vocab_size_multiple != 0:
             vocab_size += pad_vocab_size_multiple - (vocab_size % pad_vocab_size_multiple)
+        # breakpoint()
         self.backbone = LMBackbone(
             d_model=d_model, n_layer=n_layer, d_inner=d_inner, vocab_size=vocab_size,
             process_group=process_group,

@@ -18,7 +18,8 @@ model:
     measure: diag-lin
     lr: ${eval:"min(0.001, ${optimizer.lr})"}
     use_fast_fftconv: True
-  attn_layer_idx: [1, 8]
+  attn_layer_idx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+  # attn_layer_idx: [1, 8]
   attn_cfg:
     num_heads: 12
     use_flash_attn: True
@@ -31,7 +32,7 @@ model:
 
 trainer:
   accelerator: gpu
-  devices: 8
+  devices: 1
   num_nodes: 1
   accumulate_grad_batches: ${div_up:${train.global_batch_size}, ${eval:${trainer.devices} * ${dataset.batch_size} * ${trainer.num_nodes}}}
   max_epochs: 100

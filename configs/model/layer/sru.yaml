@@ -1,0 +1,14 @@
+- _name_: sru
+  # input_size: 768
+  hidden_size: 768
+  d_output: 768 # must == base.yaml: d_model
+  # rnn_dropout: 0.1
+  # bidirectional: False
+  # n_proj: 0
+  # use_tanh: False
+  # highway_bias: 0
+  
+# - _name_: ff
+#   expand: 4
+#   activation: gelu
+#   dropout: 0.1

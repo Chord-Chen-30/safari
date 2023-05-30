@@ -37,6 +37,7 @@ class SequenceResidualBlock(SequenceModule):
 
         self.i_layer = i_layer
         self.d_input = d_input
+        # breakpoint()
         self.layer = utils.instantiate(registry.layer, layer, d_input)
         self.prenorm = prenorm
         self.transposed = transposed

@@ -28,9 +28,10 @@ from src.utils.optim_groups import add_optimizer_hooks
 log = src.utils.train.get_logger(__name__)
 
 # Turn on TensorFloat32 (speeds up large model training substantially)
-import torch.backends
-torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.allow_tf32 = True
+if torch.cuda.is_available():
+    import torch.backends
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
 
 OmegaConf.register_new_resolver('eval', eval)
 OmegaConf.register_new_resolver('div_up', lambda x, y: (x + y - 1) // y)
@@ -143,10 +144,12 @@ class SequenceLightningModule(pl.LightningModule):
         # PL has some bugs, so add hooks and make sure they're only called once
         self._has_setup = False
 
+        # breakpoint()
         self.setup()  ## Added by KS
 
     def setup(self, stage=None):
         if not self.hparams.train.disable_dataset:
+            # breakpoint()
             self.dataset.setup()
 
         # We need to set up the model in setup() because for some reason when training with DDP, one GPU uses much more memory than the others
@@ -167,7 +170,15 @@ class SequenceLightningModule(pl.LightningModule):
         ) + utils.to_list(self.hparams.decoder)
 
         # Instantiate model
+        # breakpoint()
+
         self.model = utils.instantiate(registry.model, self.hparams.model)
+        
+        print(self.model)
+        # print("#Params: {}".format(
+        #     sum([p.numel() for p in self.model.parameters()])
+        # ))
+
         if (name := self.hparams.train.post_init_hook['_name_']) is not None:
             kwargs = self.hparams.train.post_init_hook.copy()
             del kwargs['_name_']
@@ -180,6 +191,7 @@ class SequenceLightningModule(pl.LightningModule):
             tasks.registry, self.hparams.task, dataset=self.dataset, model=self.model
         )
 
+        # breakpoint()
         # Create encoders and decoders
         encoder = encoders.instantiate(
             encoder_cfg, dataset=self.dataset, model=self.model
@@ -195,6 +207,7 @@ class SequenceLightningModule(pl.LightningModule):
         self.loss_val = self.task.loss
         if hasattr(self.task, 'loss_val'):
             self.loss_val = self.task.loss_val
+        # breakpoint()
         self.metrics = self.task.metrics
         self.train_torchmetrics = self.task.train_torchmetrics
         self.val_torchmetrics = self.task.val_torchmetrics
@@ -316,10 +329,12 @@ class SequenceLightningModule(pl.LightningModule):
         return x_t
 
     def _shared_step(self, batch, batch_idx, prefix="train"):
+        
+        # breakpoint()
 
         self._process_state(batch, batch_idx, train=(prefix == "train"))
         x, y, w = self.forward(batch)
-
+        # breakpoint()
         # Loss
         if prefix == 'train':
             loss = self.loss(x, y, **w)
@@ -466,6 +481,8 @@ class SequenceLightningModule(pl.LightningModule):
 
     def configure_optimizers(self):
         # Set zero weight decay for some params
+        # breakpoint()
+        
         if 'optimizer_param_grouping' in self.hparams.train:
             add_optimizer_hooks(self.model, **self.hparams.train.optimizer_param_grouping)
 
@@ -653,6 +670,7 @@ def train(config):
         pl.seed_everything(config.train.seed, workers=True)
     trainer = create_trainer(config)
     model = SequenceLightningModule(config)
+    # breakpoint()
 
     # Run initial validation epoch (useful for debugging, finetuning)
     if config.train.validate_at_start:
@@ -676,6 +694,7 @@ def main(config: OmegaConf):
     # - register evaluation resolver
     # - filter out keys used only for interpolation
     # - optional hooks, including disabling python warnings or debug friendly configuration
+    print(config)
     config = utils.train.process_config(config)
 
     # Pretty print config using Rich library

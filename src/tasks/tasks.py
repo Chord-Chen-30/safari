@@ -174,10 +174,12 @@ class LMTask(BaseTask):
         self._state = state
         x, w = decoder(x, state=state, **z)
 
-        x = x.logits
+        if not isinstance(x, torch.Tensor):
+            x = x.logits
         x = rearrange(x, '... C -> (...) C')
         y = rearrange(y, '... -> (...)')
 
+        
         return x, y, w
 
 class ForecastingTask(BaseTask):

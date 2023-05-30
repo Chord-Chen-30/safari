@@ -38,6 +38,7 @@ layer = {
     "hyena": "src.models.sequence.hyena.HyenaOperator",
     "hyena-filter": "src.models.sequence.hyena.HyenaFilter",
     "vit": "src.models.sequence.mha.VitAttention",
+    "sru": "src.models.sequence.sru.SRUCell"
 }
 
 callbacks = {

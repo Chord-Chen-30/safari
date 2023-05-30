@@ -101,6 +101,7 @@ def instantiate(registry, config, *args, partial=False, wrap=None, **kwargs):
     if partial:
         return obj
     else:
+        # breakpoint()
         return obj()
 
 

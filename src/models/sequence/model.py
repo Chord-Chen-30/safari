@@ -38,6 +38,8 @@ class SequenceModel(SequenceModule):
         self.transposed = transposed
         self.track_norms = track_norms
 
+        # breakpoint()
+
         # Input dropout (not really used)
         dropout_fn = partial(DropoutNd, transposed=self.transposed) if tie_dropout else nn.Dropout
         self.drop = dropout_fn(dropinp) if dropinp > 0.0 else nn.Identity()
@@ -64,6 +66,8 @@ class SequenceModel(SequenceModule):
             block = SequenceResidualBlock(d, l+1, prenorm=prenorm, dropout=dropout, tie_dropout=tie_dropout, transposed=transposed, layer=layer, residual=residual, norm=norm, pool=pool_cfg)
             _layers.append(block)
             d = block.d_output
+
+        # breakpoint()
 
         self.d_output = d
         self.layers = nn.ModuleList(_layers)
@@ -132,3 +136,23 @@ class SequenceModel(SequenceModule):
         x = self.norm(x)
 
         return x, next_states
+
+
+if __name__ == '__main__':
+    import pdb
+
+    sm = SequenceModel(d_model=10,
+                       n_layers=2,
+                       transposed=False,
+                       dropout=0.9,
+                       tie_dropout=False,
+                       prenorm=False,
+                       n_repeat=2, 
+                       layer='sru',
+                       residual=None,
+                       norm=None,
+                       pool=None,
+                       track_norms=True,
+                       dropinp=0.0)
+
+    pdb.set_trace()

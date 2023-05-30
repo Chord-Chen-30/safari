@@ -64,6 +64,7 @@ class PositionalEncoder(Encoder):
             nn.init.normal_(self.pe, 0, pe_init)
             # self.pe = pe.unsqueeze(1)
         else:
+            # breakpoint()
             pe = torch.zeros(max_len, d_model)
             position = torch.arange(0.0, max_len).unsqueeze(1)
             div_term = torch.exp(
@@ -86,7 +87,7 @@ class PositionalEncoder(Encoder):
             attn_mask: [l_sequence, l_sequence]
             padding_mask:
         """
-
+        breakpoint()
         x = x + self.pe[: x.size(-2)]
         return self.dropout(x)
 
@@ -287,6 +288,22 @@ class Conv2DPatchEncoder(Encoder):
         return x
 
 
+class PreTrainedGPT2Embedding(Encoder):
+    def __init__(self, *args):
+        super().__init__()
+        # breakpoint()
+        from transformers import GPT2LMHeadModel
+        gpt2 = GPT2LMHeadModel.from_pretrained("gpt2")
+        pre_trained_embed = gpt2.transformer.wte.weight.clone()
+        self.embedding = nn.Embedding.from_pretrained(pre_trained_embed)
+        del gpt2
+
+    def forward(self, x):
+        # breakpoint()
+        print(x.shape)
+        return self.embedding(x)
+
+
 # For every type of encoder/decoder, specify:
 # - constructor class
 # - list of attributes to grab from dataset
@@ -296,6 +313,7 @@ registry = {
     "stop": Encoder,
     "id": nn.Identity,
     "embedding": nn.Embedding,
+    'gpt2embedding': PreTrainedGPT2Embedding,
     "linear": nn.Linear,
     "position": PositionalEncoder,
     "position_id": PositionalIDEncoder,
@@ -310,6 +328,7 @@ registry = {
 }
 dataset_attrs = {
     "embedding": ["n_tokens"],
+    "gpt2embedding": ["n_tokens"],
     "linear": ["d_input"],  # TODO make this d_data?
     "class": ["n_classes"],
     "time": ["n_tokens_time"],
@@ -319,6 +338,7 @@ dataset_attrs = {
 }
 model_attrs = {
     "embedding": ["d_model"],
+    "gpt2embedding": ["d_model"],
     "linear": ["d_model"],
     "position": ["d_model"],
     "class": ["d_model"],
@@ -333,6 +353,7 @@ model_attrs = {
 
 def _instantiate(encoder, dataset=None, model=None):
     """Instantiate a single encoder"""
+    # breakpoint()
     if encoder is None:
         return None
     if isinstance(encoder, str):

@@ -15,6 +15,7 @@ from einops import rearrange
 
 from src.utils import instantiate
 import src.utils.registry as registry
+from src.models.sequence.sru import SRUCell
 
 class LinearResidual(nn.Linear):
     """Wrap nn.Linear to return the residual as well. For compatibility with FusedDense.
@@ -95,6 +96,8 @@ class MHA(nn.Module):
 
         linear_cls = nn.Linear
         linear_resid_cls = LinearResidual
+
+        breakpoint()
         inner_attn_cls =  SelfAttention
 
         if not self.return_residual:
@@ -243,6 +246,9 @@ class Block(nn.Module):
             mixer_cls = partial(MHA, num_heads=dim // 64)
         if mlp_cls is None:
             mlp_cls = partial(Mlp, hidden_features=4 * dim)
+        
+        # breakpoint()
+
         self.mixer = mixer_cls(dim)
         self.dropout1 = dropout_cls(resid_dropout1)
         self.drop_path1 = StochasticDepth(drop_path1, mode='row')
@@ -274,6 +280,11 @@ class Block(nn.Module):
             if mixer_subset is not None:
                 mixer_kwargs['mixer_subset'] = mixer_subset
             hidden_states = self.mixer(hidden_states, **mixer_kwargs)
+
+            if registry.layer['sru'] in str(type(self.mixer)):
+                (hidden_states, cell_state) = hidden_states
+            # breakpoint()
+
             if mixer_subset is not None:
                 residual = residual[:, mixer_subset]
             if not isinstance(self.mlp, nn.Identity):

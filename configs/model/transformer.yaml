@@ -3,6 +3,9 @@ defaults:
   - base
   - override layer: transformer
 
-encoder:
-  _name_: position
-  dropout: ${..dropout}
+# encoder:
+#   _name_: position
+#   dropout: ${..dropout}
+
+
+max_position_embeddings: 1024
